@@ -45,4 +45,4 @@ React event props follow React conventions (`onClick`, `onValueChange`, `onCheck
 
 ## Current coverage
 
-The first compatibility release includes the shared theme and the most commonly used foundations: buttons and pressables, icons, layout, panes, badges and tags, avatars, notices, progress indicators, skeletons, and core form controls. More complex components will be ported without changing the Vue packages.
+The compatibility package currently includes the shared theme and common foundations: buttons and pressables, icons, layout, panes, badges and tags, avatars, notices, progress indicators, skeletons, core form controls, breadcrumbs, pagination, segmented controls, tabs, actions, chips, items, links, and toolbars. More complex components will be ported without changing the Vue packages.
