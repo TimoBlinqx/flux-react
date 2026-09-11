@@ -1,6 +1,6 @@
 # Flux UI
 
-Source repository for **Flux UI** — an opinionated component library for [Vue 3](https://vuejs.org).
+Source repository for **Flux UI** — an opinionated component library for [Vue 3](https://vuejs.org) and React.
 
 Documentation, live examples, and the component API reference live at [flux-ui.dev](https://flux-ui.dev).
 
@@ -15,6 +15,7 @@ This is a [Bun workspaces](https://bun.com/docs/install/workspaces) monorepo. Al
 | [`@flux-ui/internals`](packages/internals)       | Shared composables, utilities, and directives.   |
 | [`@flux-ui/statistics`](packages/statistics)     | Chart components built on Apache ECharts.        |
 | [`@flux-ui/application`](packages/application)   | Application shell components.                    |
+| [`@flux-ui/react`](packages/react)               | Native React component library.                  |
 
 ## ⭐️ Prerequisites
 
