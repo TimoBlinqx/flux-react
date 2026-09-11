@@ -11,6 +11,10 @@ import tabStyles from '../../../components/src/css/component/Tab.module.scss';
 
 const BreadcrumbContext = createContext<FluxIconName>('angle-right');
 
+export function useFluxBreadcrumbSeparator() {
+    return useContext(BreadcrumbContext);
+}
+
 export function FluxBreadcrumb({ariaLabel = 'Breadcrumb', children, className, separator = 'angle-right', ...props}: Omit<HTMLAttributes<HTMLElement>, 'aria-label'> & {ariaLabel?: string; separator?: FluxIconName}) {
     return <BreadcrumbContext.Provider value={separator}><nav {...props} className={clsx(breadcrumbStyles.breadcrumb, className)} aria-label={ariaLabel}><ol className={breadcrumbStyles.breadcrumbList}>{children}</ol></nav></BreadcrumbContext.Provider>;
 }
