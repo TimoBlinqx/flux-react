@@ -10,4 +10,5 @@ export * from './components/Forms';
 export * from './components/Icon';
 export * from './components/Layout';
 export * from './components/Navigation';
+export * from './components/Overlays';
 export * from './components/Root';
