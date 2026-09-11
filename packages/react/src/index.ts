@@ -11,6 +11,7 @@ export * from './components/Disclosure';
 export * from './components/Feedback';
 export * from './components/Forms';
 export * from './components/Icon';
+export * from './components/Interactions';
 export * from './components/Layout';
 export * from './components/Menus';
 export * from './components/Navigation';
