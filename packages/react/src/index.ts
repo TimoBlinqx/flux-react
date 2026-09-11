@@ -2,6 +2,7 @@ import '../../components/src/css/index.scss';
 
 export * from './types';
 export * from './components/Actions';
+export * from './components/AdvancedForms';
 export * from './components/Composition';
 export * from './components/Display';
 export * from './components/DisplayExtended';

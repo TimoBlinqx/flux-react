@@ -14,6 +14,10 @@ interface FieldContextValue {
 
 const FieldContext = createContext<FieldContextValue | undefined>(undefined);
 
+export function useFluxFormField() {
+    return useContext(FieldContext);
+}
+
 export interface FluxFormFieldProps extends HTMLAttributes<HTMLDivElement> {
     as?: 'field' | 'group';
     addition?: ReactNode;
