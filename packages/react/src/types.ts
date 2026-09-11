@@ -12,6 +12,10 @@ export type FluxIconStyle = 'solid' | 'regular' | 'light' | 'thin' | 'duotone' |
 export type FluxIconName = string;
 export type FluxTo = string | {pathname?: string; search?: string; hash?: string};
 export type FluxElementType = ElementType;
+export interface FluxFocalPointObject {
+    x: number;
+    y: number;
+}
 
 export type FluxStyle = CSSProperties & Record<`--${string}`, string | number | undefined>;
 

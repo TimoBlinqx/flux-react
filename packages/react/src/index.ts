@@ -4,6 +4,7 @@ export * from './types';
 export * from './components/Actions';
 export * from './components/Composition';
 export * from './components/Display';
+export * from './components/DisplayExtended';
 export * from './components/Disclosure';
 export * from './components/Feedback';
 export * from './components/Forms';
