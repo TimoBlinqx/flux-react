@@ -24,3 +24,4 @@ export * from './components/SelectionForms';
 export * from './components/Tables';
 export * from './components/TreesKanban';
 export * from './components/Utilities';
+export * from './components/Visuals';
