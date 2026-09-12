@@ -16,7 +16,12 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            '~flux/components': resolve(import.meta.dirname, '../components/src')
+            '~flux/ai': resolve(import.meta.dirname, '../ai/src'),
+            '~flux/application': resolve(import.meta.dirname, '../application/src'),
+            '~flux/components': resolve(import.meta.dirname, '../components/src'),
+            '~flux/flow': resolve(import.meta.dirname, '../flow/src'),
+            '~flux/statistics': resolve(import.meta.dirname, '../statistics/src'),
+            '~flux/visuals': resolve(import.meta.dirname, '../visuals/src')
         }
     },
     css: {
@@ -36,7 +41,7 @@ export default defineConfig({
             name: 'fluxReact'
         },
         rolldownOptions: {
-            external: ['clsx', 'luxon', 'react', 'react-dom', 'react/jsx-runtime'],
+            external: ['clsx', 'luxon', 'marked', 'react', 'react-dom', 'react/jsx-runtime'],
             output: {
                 assetFileNames: assetInfo => assetInfo.name?.endsWith('.css') ? 'index.css' : '[name][extname]',
                 exports: 'named'

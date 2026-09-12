@@ -6,7 +6,12 @@ export default defineConfig({
     plugins: [react()],
     resolve: {
         alias: {
-            '~flux/components': resolve(import.meta.dirname, '../components/src')
+            '~flux/ai': resolve(import.meta.dirname, '../ai/src'),
+            '~flux/application': resolve(import.meta.dirname, '../application/src'),
+            '~flux/components': resolve(import.meta.dirname, '../components/src'),
+            '~flux/flow': resolve(import.meta.dirname, '../flow/src'),
+            '~flux/statistics': resolve(import.meta.dirname, '../statistics/src'),
+            '~flux/visuals': resolve(import.meta.dirname, '../visuals/src')
         }
     },
     test: {

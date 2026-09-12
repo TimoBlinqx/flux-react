@@ -3,6 +3,7 @@ import '../../components/src/css/index.scss';
 export * from './types';
 export * from './components/Actions';
 export * from './components/AdvancedForms';
+export * from './components/Ai';
 export * from './components/Application';
 export * from './components/CalendarFilters';
 export * from './components/Composition';
