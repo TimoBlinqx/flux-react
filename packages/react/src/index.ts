@@ -21,4 +21,5 @@ export * from './components/Overlays';
 export * from './components/Root';
 export * from './components/SelectionForms';
 export * from './components/Tables';
+export * from './components/TreesKanban';
 export * from './components/Utilities';
