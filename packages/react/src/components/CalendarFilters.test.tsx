@@ -1,27 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { DateTime } from "luxon";
 import { describe, expect, it, vi } from "vitest";
-import {
-    FluxCalendar,
-    FluxCalendarItem,
-    FluxDatePicker,
-    FluxFilter,
-    FluxFilterOption,
-    FluxFilterOptions,
-    FluxFilterRange,
-} from "./CalendarFilters";
+import { FluxCalendar, FluxCalendarItem, FluxDatePicker, FluxFilter, FluxFilterOption, FluxFilterOptions, FluxFilterRange } from "./CalendarFilters";
 
 describe("FluxDatePicker", () => {
     it("selects a date and respects date boundaries", () => {
         const onValueChange = vi.fn();
-        render(
-            <FluxDatePicker
-                defaultValue={DateTime.fromISO("2025-01-15")}
-                min={DateTime.fromISO("2025-01-10")}
-                max={DateTime.fromISO("2025-01-25")}
-                onValueChange={onValueChange}
-            />,
-        );
+        render(<FluxDatePicker defaultValue={DateTime.fromISO("2025-01-15")} min={DateTime.fromISO("2025-01-10")} max={DateTime.fromISO("2025-01-25")} onValueChange={onValueChange} />);
 
         const day = screen.getAllByRole("button", { name: "20" }).find((button) => !button.hasAttribute("disabled"));
         fireEvent.click(day!);
@@ -45,18 +30,16 @@ describe("FluxCalendar", () => {
         const onNavigate = vi.fn();
         render(
             <FluxCalendar initialDate={DateTime.fromISO("2025-01-15")} onNavigate={onNavigate}>
-                <FluxCalendarItem id="planning" date={DateTime.fromISO("2025-01-20")}>Planning</FluxCalendarItem>
+                <FluxCalendarItem id="planning" date={DateTime.fromISO("2025-01-20")}>
+                    Planning
+                </FluxCalendarItem>
             </FluxCalendar>,
         );
 
         expect(screen.getByRole("button", { name: "Planning" })).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", { name: "Next" }));
         expect(screen.getByText("February 2025")).toBeInTheDocument();
-        expect(onNavigate).toHaveBeenLastCalledWith(
-            expect.objectContaining({ month: 2 }),
-            expect.any(DateTime),
-            expect.any(DateTime),
-        );
+        expect(onNavigate).toHaveBeenLastCalledWith(expect.objectContaining({ month: 2 }), expect.any(DateTime), expect.any(DateTime));
     });
 });
 
@@ -73,7 +56,14 @@ describe("filter controls", () => {
 
         rerender(
             <FluxFilter value={{ status: ["open"] }} onValueChange={onValueChange}>
-                <FluxFilterOptions name="status" label="Status" options={[{ label: "Open", value: "open" }, { label: "Closed", value: "closed" }]} />
+                <FluxFilterOptions
+                    name="status"
+                    label="Status"
+                    options={[
+                        { label: "Open", value: "open" },
+                        { label: "Closed", value: "closed" },
+                    ]}
+                />
             </FluxFilter>,
         );
         fireEvent.click(screen.getByRole("checkbox", { name: "Closed" }));
