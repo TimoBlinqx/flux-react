@@ -22,6 +22,7 @@
         "audit:exports": "node scripts/audit-exports.mjs",
         "build": "tsc --noEmit && vite build && tsc --emitDeclarationOnly",
         "dev": "vite build --watch --mode development",
+        "showcase": "bun run build && vite --config demo/vite.config.ts",
         "test": "vitest run --config vitest.config.ts"
     },
     "engines": {
