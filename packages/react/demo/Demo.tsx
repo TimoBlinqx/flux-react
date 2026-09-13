@@ -31,7 +31,7 @@ export function Demo() {
     return (
         <FluxRoot className="demo-root">
             <header className="topbar">
-                <a className="brand" href="#top" aria-label="Flux React home">
+                <a className="brand" href="/" aria-label="Flux home">
                     <span className="brand-mark">F</span>
                     <span>Flux</span>
                     <span className="react-pill">React</span>
@@ -40,6 +40,7 @@ export function Demo() {
                     <a href="#packages">Packages</a>
                     <a href="#components">Components</a>
                     <a href="#architecture">Architecture</a>
+                    <a href="/guide/introduction/react">Docs</a>
                 </nav>
                 <a className="github-link" href="https://github.com/TimoBlinqx/flux-react/pull/1" target="_blank" rel="noreferrer">
                     PR #1 ↗
@@ -133,7 +134,7 @@ export function Demo() {
                                 <span>Core / Forms</span>
                                 <FluxBadge color="success" label="Interactive" />
                             </div>
-                            <FluxFormField label="Display name" subLabel="Controlled with React state">
+                            <FluxFormField label="Display name" hint="Controlled with React state">
                                 <FluxFormInput value={name} onValueChange={(value) => setName(String(value ?? ""))} />
                             </FluxFormField>
                             <FluxFormCheckbox checked={enabled} label="Enable notifications" subLabel="Uses onCheckedChange" onCheckedChange={setEnabled} />

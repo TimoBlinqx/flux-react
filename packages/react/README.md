@@ -2,6 +2,8 @@
 
 Native React components for Flux UI. The package lives alongside the Vue packages, uses the same design tokens and styles, and has no Vue runtime dependency.
 
+[Open the React showcase](https://flux-ui.dev/react/) or run it locally with `bun run showcase`.
+
 ## Install
 
 ```sh

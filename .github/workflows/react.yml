@@ -37,3 +37,6 @@ jobs:
 
             - name: Build
               run: bun run --cwd packages/react build
+
+            - name: Build website showcase
+              run: bun run --cwd packages/react build:showcase

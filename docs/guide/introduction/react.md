@@ -2,6 +2,8 @@
 
 Flux UI includes a native React package alongside its Vue packages. It shares the same component names, design tokens, Sass modules, and public package APIs without depending on the Vue runtime.
 
+[Open the interactive React showcase](/react/).
+
 ## Installation
 
 ```sh
