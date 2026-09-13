@@ -10,6 +10,13 @@ describe('React form components', () => {
         expect(input).toHaveAccessibleDescription('Required');
     });
 
+    it('uses the Vue hint class and structure for field additions', () => {
+        render(<FluxFormField label="Email" hint="Helpful"><FluxFormInput /></FluxFormField>);
+        const addition = screen.getByText('Helpful').parentElement;
+        expect(addition?.tagName).toBe('DIV');
+        expect(addition?.className).toMatch(/formFieldAdditionHint|form-field-addition-hint/);
+    });
+
     it('reports toggle changes', () => {
         const onCheckedChange = vi.fn();
         render(<FluxToggle aria-label="Enabled" onCheckedChange={onCheckedChange} />);

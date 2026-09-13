@@ -32,6 +32,11 @@ describe("statistics option builders", () => {
 });
 
 describe("statistics components", () => {
+    it("does not dim percentage segments without a legend scope", () => {
+        render(<FluxStatisticsPercentageBar items={[{ label: "Used", value: 1 }]} />);
+        expect(screen.getByRole("img").firstElementChild?.className).not.toMatch(/isHoverActive|is-hover-active/);
+    });
+
     it("mounts ECharts and sends generated options", async () => {
         render(<FluxStatisticsBarChart labels={["Jan"]} series={[{ name: "Sales", data: [4] }]} />);
         await waitFor(() => expect(init).toHaveBeenCalled());

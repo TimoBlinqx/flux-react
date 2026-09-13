@@ -296,7 +296,7 @@ export function FluxStatisticsPercentageBar({ items }: { items: FluxStatisticsPe
     useEffect(() => context?.setItems(items.map((item) => ({ color: resolveChartColor(item.color), icon: item.icon, label: item.label, value: item.displayValue }))), [context, items]);
     return (
         <div role="img" aria-label={normalized.map((item) => `${percentage(item.value)} ${item.label}`).join(", ")} className={percentageStyles.statisticsPercentageBar}>
-            <div className={clsx(percentageStyles.statisticsPercentageBarTrack, context?.hoveredIndex !== null && percentageStyles.isHoverActive)}>
+            <div className={clsx(percentageStyles.statisticsPercentageBarTrack, context && context.hoveredIndex !== null && percentageStyles.isHoverActive)}>
                 {normalized.map((item, index) => (
                     <div key={item.label} title={`${percentage(item.value)} ${item.label}`} className={clsx(percentageStyles.statisticsPercentageBarSegment, context?.hoveredIndex === index && percentageStyles.isHovered)} style={{ backgroundColor: resolveChartColor(item.color), flexGrow: item.value }} onMouseEnter={() => context?.setHoveredIndex(index)} onMouseLeave={() => context?.setHoveredIndex(null)} />
                 ))}

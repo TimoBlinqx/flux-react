@@ -1,11 +1,12 @@
 import {clsx} from 'clsx';
 import type {ElementType, HTMLAttributes, ReactNode} from 'react';
-import type {FluxColor} from '../types';
+import type {FluxColor, FluxStyle} from '../types';
 import {toCssSize} from '../types';
 import spinnerStyles from '../../../components/src/css/component/Spinner.module.scss';
 import progressStyles from '../../../components/src/css/component/Progress.module.scss';
 import ringStyles from '../../../components/src/css/component/ProgressRing.module.scss';
 import skeletonStyles from '../../../components/src/css/component/Skeleton.module.scss';
+import flexStyles from '../../../components/src/css/component/Flex.module.scss';
 
 const spinnerColorClasses: Record<FluxColor, string> = {
     gray: spinnerStyles.spinnerGray,
@@ -58,7 +59,7 @@ export interface FluxProgressBarProps extends Omit<HTMLAttributes<HTMLDivElement
     value?: number;
 }
 
-export function FluxProgressBar({className, color = 'primary', isIndeterminate = false, max = 1, min = 0, status, value, ...props}: FluxProgressBarProps) {
+export function FluxProgressBar({className, color = 'primary', isIndeterminate = false, max = 1, min = 0, status, style, value, ...props}: FluxProgressBarProps) {
     const current = clamp(value ?? min, min, max);
     const position = isIndeterminate ? 0 : max <= min ? (current >= max ? 1 : 0) : clamp((current - min) / (max - min), 0, 1);
     const progress = new Intl.NumberFormat(undefined, {style: 'percent', maximumFractionDigits: 0}).format(position);
@@ -66,7 +67,8 @@ export function FluxProgressBar({className, color = 'primary', isIndeterminate =
     return (
         <div
             {...props}
-            className={clsx(progressStyles.progressBar, progressColorClasses[color], className)}
+            className={clsx(flexStyles.flex, flexStyles.flexDirectionVertical, progressStyles.progressBar, progressColorClasses[color], className)}
+            style={{...style, '--gap': '6px'} as FluxStyle}
             role="progressbar"
             aria-valuenow={isIndeterminate ? undefined : current}
             aria-valuemax={max}

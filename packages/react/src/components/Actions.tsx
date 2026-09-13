@@ -6,6 +6,7 @@ import {resolveTo} from '../types';
 import {FluxIcon} from './Icon';
 import {FluxSpinner} from './Feedback';
 import buttonStyles from '../../../components/src/css/component/Button.module.scss';
+import baseButtonStyles from '../../../components/src/css/component/base/Button.module.scss';
 
 export interface FluxPressableProps extends Omit<HTMLAttributes<HTMLElement>, 'onClick'> {
     buttonType?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
@@ -125,7 +126,7 @@ export function FluxButton({variant = 'secondary', ...props}: FluxButtonProps & 
     return (
         <FluxPressable
             {...pressableProps}
-            className={clsx(classes.button, isActive && buttonStyles.isActive, isFilled && buttonStyles.isFilled, buttonStyles[`is${capitalize(size)}`], className)}
+            className={clsx(classes.button, isActive && buttonStyles.isActive, isFilled && baseButtonStyles.isFilled, baseButtonStyles[`is${capitalize(size)}`], className)}
             componentType={type}
             buttonType={isSubmit ? 'submit' : 'button'}
             disabled={disabled}
@@ -177,7 +178,7 @@ export function FluxButtonStack({children, className, direction = 'horizontal', 
 }
 
 function renderIcon(icon: FluxIconName | ReactNode | undefined, className: string, loading: boolean) {
-    if (loading) return <FluxSpinner className={className} size={20} />;
+    if (loading) return <FluxSpinner size={20} />;
     if (typeof icon === 'string') return <FluxIcon className={className} name={icon} />;
     return icon;
 }

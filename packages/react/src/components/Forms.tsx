@@ -55,8 +55,8 @@ export function FluxFormField({addition, as = 'field', children, className, curr
     </FieldContext.Provider>;
 }
 
-export function FluxFormFieldAddition({className, icon, message, mode = 'default', ...props}: HTMLAttributes<HTMLSpanElement> & {icon?: FluxIconName; message?: ReactNode; mode?: 'default' | 'error'}) {
-    return <span {...props} className={clsx(formStyles.formFieldAddition, mode === 'error' && formStyles.isError, className)}>{icon && <FluxIcon className={formStyles.formFieldAdditionIcon} name={icon} />}<span>{message}</span></span>;
+export function FluxFormFieldAddition({className, icon, message, mode = 'hint', ...props}: HTMLAttributes<HTMLDivElement> & {icon?: FluxIconName; message?: ReactNode; mode?: 'error' | 'hint'}) {
+    return <div {...props} className={clsx(mode === 'error' ? formStyles.formFieldAdditionError : formStyles.formFieldAdditionHint, className)} role={mode === 'error' ? 'alert' : undefined}>{icon && <FluxIcon className={formStyles.formFieldAdditionIcon} name={icon} size={16} />}{message && <span>{message}</span>}</div>;
 }
 
 export interface FluxFormInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'size'> {

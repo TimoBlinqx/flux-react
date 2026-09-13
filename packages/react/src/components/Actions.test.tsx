@@ -17,10 +17,16 @@ describe('FluxPressable', () => {
 });
 
 describe('FluxPrimaryButton', () => {
+    it('uses the same default medium sizing class as Vue', () => {
+        render(<FluxPrimaryButton label="Save" />);
+        expect(screen.getByRole('button', {name: 'Save'}).className).toMatch(/isMedium|is-medium/);
+    });
+
     it('does not fire while loading', () => {
         const onClick = vi.fn();
         render(<FluxPrimaryButton label="Save" isLoading onClick={onClick} />);
         fireEvent.click(screen.getByRole('button', {name: 'Save'}));
         expect(onClick).not.toHaveBeenCalled();
+        expect(screen.getByRole('button', {name: 'Save'}).querySelector('svg')?.className.baseVal).not.toMatch(/buttonIcon|button-icon/);
     });
 });
