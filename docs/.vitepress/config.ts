@@ -137,6 +137,7 @@ export default defineConfig({
                     collapsed: false,
                     items: [
                         {text: 'What is Flux', link: '/guide/introduction/what-is-flux'},
+                        {text: 'React', link: '/guide/introduction/react'},
                         {
                             text: 'Installation',
                             collapsed: true,
