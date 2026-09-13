@@ -202,7 +202,7 @@ function sortIcon(sort: FluxTableSort, dataType: "text" | "numeric" | "date"): F
     if (dataType === "date") return sort === "ascending" ? "arrow-down-short-wide" : "arrow-up-wide-short";
     return sort === "ascending" ? "arrow-down-a-z" : "arrow-up-a-z";
 }
-export function FluxTableHeader({ align, children, className, dataType = "text", isResizable, isShrinking, isSortable, maxWidth, minWidth = 48, onResize, onSort, pinned, sort, style, width, ...props }: FluxTableHeaderProps) {
+export function FluxTableHeader({ align, children, className, dataType = "text", isNumeric, isResizable, isShrinking, isSortable, maxWidth, minWidth = 48, onResize, onSort, pinned, sort, style, width, ...props }: FluxTableHeaderProps) {
     const [resizedWidth, setResizedWidth] = useState<number | undefined>(width);
     useEffect(() => setResizedWidth(width), [width]);
     const pinnedSide = pinned === true ? "start" : pinned;
@@ -224,7 +224,7 @@ export function FluxTableHeader({ align, children, className, dataType = "text",
         window.addEventListener("pointerup", up);
     };
     return (
-        <div {...props} className={clsx(tableStyles.tableHeader, isResizable && tableStyles.isResizable, isShrinking && tableStyles.isShrinking, pinnedSide === "start" && tableStyles.isPinnedStart, pinnedSide === "end" && tableStyles.isPinnedEnd, className)} role="columnheader" aria-sort={isSortable ? (sort ?? "none") : undefined} style={{ ...style, justifyContent: align, textAlign: align, width: resizedWidth }}>
+        <div {...props} className={clsx(tableStyles.tableHeader, isNumeric && tableStyles.isNumeric, isResizable && tableStyles.isResizable, isShrinking && tableStyles.isShrinking, pinnedSide === "start" && tableStyles.isPinnedStart, pinnedSide === "end" && tableStyles.isPinnedEnd, className)} role="columnheader" aria-sort={isSortable ? (sort ?? "none") : undefined} style={{ ...style, justifyContent: align, textAlign: align, width: resizedWidth }}>
             {children}
             {isSortable && (
                 <button className={tableStyles.tableSort} type="button" aria-label="Sort" onClick={cycleSort}>

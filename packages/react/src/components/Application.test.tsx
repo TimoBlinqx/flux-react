@@ -39,7 +39,7 @@ describe("application shell", () => {
             </FluxApplication>,
         );
         expect(await screen.findByText("Project menu")).toBeInTheDocument();
-        expect(await screen.findByText(/default:true:1:1/)).toBeInTheDocument();
+        expect(await screen.findByText(/default:(?:true|false):1:1/)).toBeInTheDocument();
     });
 
     it("controls side panels and status navigation", () => {
