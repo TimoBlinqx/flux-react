@@ -1,5 +1,7 @@
 import "../../components/src/css/index.scss";
 
+export * from "./colors";
+export * from "./compatibility";
 export * from "./types";
 export * from "./components/Actions";
 export * from "./components/AdvancedForms";

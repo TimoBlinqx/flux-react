@@ -69,18 +69,18 @@ export interface FluxApplicationInjection {
     toggle(): void;
     updateContext(id: symbol, info: Omit<FluxApplicationContextInfo, "id">): void;
 }
-const ApplicationContext = createContext<FluxApplicationInjection | null>(null);
+export const FluxApplicationInjectionKey = createContext<FluxApplicationInjection | null>(null);
 
 export function useApplicationInjection() {
-    const context = useContext(ApplicationContext);
+    const context = useContext(FluxApplicationInjectionKey);
     if (!context) throw new Error("Application components must be used inside FluxApplication");
     return context;
 }
 export function useRoute() {
-    return useContext(ApplicationContext)?.route ?? null;
+    return useContext(FluxApplicationInjectionKey)?.route ?? null;
 }
 export function useRouter() {
-    return useContext(ApplicationContext)?.router ?? null;
+    return useContext(FluxApplicationInjectionKey)?.router ?? null;
 }
 export function useNamedRoutes(name = "menu"): NamedRouteMatch[] {
     const route = useRoute();
@@ -168,14 +168,14 @@ export function FluxApplication({ children, className, contextMenuName = "menu",
         [contexts, isMenuCollapsed, layout, route, router, showDesktopMenuToggle, totalLevels, viewIndex],
     );
     return (
-        <ApplicationContext.Provider value={context}>
+        <FluxApplicationInjectionKey.Provider value={context}>
             <div {...props} className={clsx(applicationStyles.application, className)}>
                 {menu}
                 <div className={applicationStyles.applicationBody}>{children}</div>
                 {side}
                 <button type="button" aria-label="Close menu" className={applicationStyles.applicationMenuBackdrop} onClick={context.close} />
             </div>
-        </ApplicationContext.Provider>
+        </FluxApplicationInjectionKey.Provider>
     );
 }
 
@@ -355,7 +355,17 @@ export function FluxApplicationStatusPage({ actions, children, className, code, 
                 <h1>{title ?? preset.title}</h1>
                 {children ?? <p>{description ?? preset.description}</p>}
             </div>
-            <div className={statusStyles.applicationStatusPageActions}>{actions ?? <FluxSecondaryButton label="Back" onClick={() => { if (router) router.back(); else history.back(); }} />}</div>
+            <div className={statusStyles.applicationStatusPageActions}>
+                {actions ?? (
+                    <FluxSecondaryButton
+                        label="Back"
+                        onClick={() => {
+                            if (router) router.back();
+                            else history.back();
+                        }}
+                    />
+                )}
+            </div>
         </div>
     );
 }

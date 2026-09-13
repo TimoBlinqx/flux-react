@@ -256,7 +256,10 @@ export interface UseStreamingMarkdownOptions {
     isStreaming?: boolean;
     renderCode(props: MarkdownCodeProps): ReactNode;
 }
-export function useStreamingMarkdown({ content, fadeClass, isStreaming, renderCode }: UseStreamingMarkdownOptions) {
+export interface UseStreamingMarkdownReturn {
+    readonly nodes: ReactNode[];
+}
+export function useStreamingMarkdown({ content, fadeClass, isStreaming, renderCode }: UseStreamingMarkdownOptions): UseStreamingMarkdownReturn {
     const nodes = useMemo(() => {
         const source = isStreaming ? repairStreamingTail(content.replace(/\r\n?/g, "\n")) : content;
         return renderMarkdown(lexMarkdown(source).tokens, { fadeClass: isStreaming ? (fadeClass ?? null) : null, renderCode, wordIndex: 0 });
@@ -339,7 +342,10 @@ export function FluxAiCodeBlock({ code, language }: MarkdownCodeProps) {
         </div>
     );
 }
-const ConversationContext = createContext<{ scrollToBottom(): void } | null>(null);
+export interface FluxAiConversationInjection {
+    scrollToBottom(): void;
+}
+export const FluxAiConversationInjectionKey = createContext<FluxAiConversationInjection | null>(null);
 export interface FluxAiConversationHandle {
     scrollToBottom(): void;
 }
@@ -375,7 +381,7 @@ export const FluxAiConversation = forwardRef<FluxAiConversationHandle, HTMLAttri
             );
         });
     return (
-        <ConversationContext.Provider value={{ scrollToBottom }}>
+        <FluxAiConversationInjectionKey.Provider value={{ scrollToBottom }}>
             <div {...props} className={clsx(conversationStyles.conversation, className)}>
                 <div
                     ref={scroller}
@@ -397,11 +403,11 @@ export const FluxAiConversation = forwardRef<FluxAiConversationHandle, HTMLAttri
                 </div>
                 {!atBottom && <FluxSecondaryButton className={conversationStyles.conversationJump} iconLeading="arrow-down" aria-label={jumpToLatestLabel} onClick={scrollToBottom} />}
             </div>
-        </ConversationContext.Provider>
+        </FluxAiConversationInjectionKey.Provider>
     );
 });
 export function FluxAiMessage({ actions, author, avatarFallbackInitials, avatarSrc, children, className, dateTime, day: _day, footer, icon, isStreaming, role, when, ...props }: Omit<HTMLAttributes<HTMLElement>, "role"> & { actions?: ReactNode; author?: string; avatarFallbackInitials?: string; avatarSrc?: string; dateTime?: string; day?: string; footer?: ReactNode; icon?: FluxIconName; isStreaming?: boolean; role: "assistant" | "system" | "user"; when?: string }) {
-    const inConversation = useContext(ConversationContext),
+    const inConversation = useContext(FluxAiConversationInjectionKey),
         Tag = inConversation ? "li" : "article",
         authorLabel = author ?? { assistant: "Assistant", system: "System", user: "You" }[role],
         marker = avatarSrc || avatarFallbackInitials ? <FluxAvatar className={messageStyles.messageMarker} fallbackInitials={avatarFallbackInitials} size={30} src={avatarSrc} aria-hidden="true" /> : icon ? <FluxBoxedIcon className={messageStyles.messageMarker} name={icon} rounded size={30} aria-hidden="true" /> : null;
