@@ -51,6 +51,25 @@ describe("tree controls", () => {
         expect(onValueChange).toHaveBeenCalledWith("flux");
     });
 
+    it("opens and selects a tree option from the keyboard", () => {
+        const onValueChange = vi.fn();
+        render(<FluxFormTreeViewSelect options={tree} value={null} onValueChange={onValueChange} placeholder="Choose" />);
+        const combobox = screen.getByRole("combobox");
+        fireEvent.keyDown(combobox, {key: "ArrowDown"});
+        expect(combobox).toHaveAttribute("aria-expanded", "true");
+        fireEvent.keyDown(combobox, {key: "Enter"});
+        expect(onValueChange).toHaveBeenCalledWith("projects");
+    });
+
+    it("re-seeds expansion when asynchronous options or depth change", () => {
+        const {rerender} = render(<FluxTreeView options={[]} expandedDepth={1} />);
+        rerender(<FluxTreeView options={tree} expandedDepth={2} />);
+        expect(screen.getByText("Flux")).toBeInTheDocument();
+        rerender(<FluxTreeView options={[{id: "other", label: "Other", children: [{id: "child", label: "Child"}]}]} expandedDepth={2} />);
+        expect(screen.queryByText("Flux")).not.toBeInTheDocument();
+        expect(screen.getByText("Child")).toBeInTheDocument();
+    });
+
     it("provides a searchable IANA time-zone select", () => {
         render(<FluxFormTimeZonePicker value={null} onValueChange={() => undefined} aria-label="Time zone" placeholder="Select zone" />);
         expect(screen.getByRole("combobox", { name: "Time zone" })).toBeInTheDocument();
@@ -83,6 +102,26 @@ describe("Kanban", () => {
         );
         fireEvent.keyDown(screen.getAllByText("Todo")[0].closest("header")!, { key: "ArrowRight" });
         expect(onMoveColumn).toHaveBeenCalledWith({ columnId: "todo", beforeColumnId: undefined });
+    });
+
+    it("encodes vertical card destinations with typed before-item ids", () => {
+        const onMove = vi.fn();
+        render(
+            <FluxKanban onMove={onMove}>
+                <FluxKanbanColumn columnId={1} label="Todo">
+                    <FluxKanbanItem columnId={1} itemId={1}>First</FluxKanbanItem>
+                    <FluxKanbanItem columnId={1} itemId={2}>Second</FluxKanbanItem>
+                    <FluxKanbanItem columnId={1} itemId={3}>Third</FluxKanbanItem>
+                    <FluxKanbanItem columnId={1} itemId={4}>Fourth</FluxKanbanItem>
+                </FluxKanbanColumn>
+            </FluxKanban>,
+        );
+        const item = screen.getAllByRole("listitem")[1];
+        fireEvent.keyDown(item, {key: " "});
+        fireEvent.keyDown(item, {key: "ArrowUp"});
+        expect(onMove).toHaveBeenLastCalledWith(expect.objectContaining({itemId: 2, beforeItemId: 1}));
+        fireEvent.keyDown(item, {key: "ArrowDown"});
+        expect(onMove).toHaveBeenLastCalledWith(expect.objectContaining({itemId: 2, beforeItemId: 4}));
     });
 
     it("collapses swimlanes", () => {

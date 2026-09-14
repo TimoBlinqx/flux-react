@@ -21,9 +21,11 @@ describe("FluxSnackbarProvider", () => {
         act(() => {
             alert = showAlert({ message: "Details", title: "Attention" });
         });
+        expect(screen.getByText("Application")).toHaveAttribute("inert");
         expect(screen.getByRole("dialog", { name: "Attention" })).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", { name: "OK" }));
         await expect(alert).resolves.toBeUndefined();
+        expect(screen.getByText("Application")).not.toHaveAttribute("inert");
 
         let confirm!: Promise<boolean>;
         act(() => {

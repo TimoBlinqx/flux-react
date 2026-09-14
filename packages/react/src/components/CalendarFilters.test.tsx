@@ -12,6 +12,7 @@ describe("FluxDatePicker", () => {
         fireEvent.click(day!);
         expect(onValueChange.mock.calls[0][0].toISODate()).toBe("2025-01-20");
         expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+        expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
     });
 
     it("emits an ordered range after two selections", () => {
@@ -22,6 +23,27 @@ describe("FluxDatePicker", () => {
         fireEvent.click(enabledDay("20"));
         fireEvent.click(enabledDay("12"));
         expect(onValueChange.mock.calls[0][0].map((date: DateTime) => date.toISODate())).toEqual(["2025-01-12", "2025-01-20"]);
+    });
+
+    it("previews only the range between the selected and hovered dates", () => {
+        render(<FluxDatePicker defaultValue={DateTime.fromISO("2025-01-15")} rangeMode="range" />);
+        const enabledDay = (label: string) => screen.getAllByRole("button", { name: label }).find((button) => !button.hasAttribute("disabled"))!;
+        fireEvent.click(enabledDay("20"));
+        fireEvent.mouseEnter(enabledDay("12"));
+        expect(enabledDay("15").className).toMatch(/isSelectionEntry/);
+        expect(enabledDay("10").className).not.toMatch(/isSelectionEntry/);
+        expect(enabledDay("25").className).not.toMatch(/isSelectionEntry/);
+    });
+
+    it("uses roving focus and arrow keys for day selection", () => {
+        render(<FluxDatePicker defaultValue={DateTime.fromISO("2025-01-15")} />);
+        const day15 = screen.getAllByRole("button", { name: "15" }).find((button) => !button.hasAttribute("disabled"))!;
+        const day16 = screen.getAllByRole("button", { name: "16" }).find((button) => !button.hasAttribute("disabled"))!;
+        expect(day15).toHaveAttribute("tabindex", "0");
+        day15.focus();
+        fireEvent.keyDown(day15, { key: "ArrowRight" });
+        expect(day16).toHaveFocus();
+        expect(day16).toHaveAttribute("tabindex", "0");
     });
 });
 
@@ -80,5 +102,26 @@ describe("filter controls", () => {
         const sliders = screen.getAllByRole("slider");
         fireEvent.change(sliders[0], { target: { value: "90" } });
         expect(onValueChange).toHaveBeenCalledWith({ price: [90, 90] });
+    });
+
+    it("applies option disabled state and invokes option callbacks", () => {
+        const onValueChange = vi.fn(), onChange = vi.fn(), onClear = vi.fn();
+        const {rerender} = render(
+            <FluxFilter value={{status: null}} onValueChange={onValueChange}>
+                <FluxFilterOption disabled name="status" label="Status" options={[{label: "Open", value: "open"}]} onChange={onChange} />
+            </FluxFilter>,
+        );
+        expect(screen.getByRole("radio", {name: "Open"})).toBeDisabled();
+        fireEvent.click(screen.getByRole("radio", {name: "Open"}));
+        expect(onValueChange).not.toHaveBeenCalled();
+
+        rerender(
+            <FluxFilter value={{status: ["open"]}} onValueChange={onValueChange}>
+                <FluxFilterOptions name="status" label="Status" options={[{label: "Open", value: "open"}]} onChange={onChange} onClear={onClear} />
+            </FluxFilter>,
+        );
+        fireEvent.click(screen.getByRole("checkbox", {name: "Open"}));
+        expect(onChange).toHaveBeenLastCalledWith([]);
+        expect(onClear).toHaveBeenCalledOnce();
     });
 });

@@ -4,6 +4,7 @@ import {useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import type {CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode} from 'react';
 import type {FluxDirection, FluxSize, FluxStyle} from '../types';
 import {FluxPane} from './Display';
+import {registerDialog, useFluxStore} from './Notifications';
 import overlayStyles from '../../../components/src/css/component/Overlay.module.scss';
 import sheetStyles from '../../../components/src/css/component/Sheet.module.scss';
 import flyoutStyles from '../../../components/src/css/component/Flyout.module.scss';
@@ -30,24 +31,31 @@ export function FluxSheet({children, className, isDraggable = true, position = '
 
 function DialogPortal({children, className, isCloseable, label, onClose, open, ...props}: DialogProps) {
     const ref = useRef<HTMLDivElement>(null);
-    useDialogLifecycle(open, ref, onClose, isCloseable);
+    const [dialogId, setDialogId] = useState<number>();
+    const {dialogs} = useFluxStore();
+    const isCurrent = dialogId !== undefined && dialogs.at(-1) === dialogId;
+    useEffect(() => {
+        if (!open) return;
+        const registration = registerDialog();
+        setDialogId(registration.id);
+        return () => registration.unregister();
+    }, [open]);
+    useDialogLifecycle(open && isCurrent, ref, onClose, isCloseable);
     if (!open || typeof document === 'undefined') return null;
-    return createPortal(<div className={overlayStyles.overlayProvider}><div className={overlayStyles.overlayShade} /><div {...props} ref={ref} className={clsx(className, overlayStyles.isCurrent)} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onMouseDown={event => {if (isCloseable && event.target === event.currentTarget) onClose?.();}}>{children}</div></div>, document.body);
+    return createPortal(<div className={overlayStyles.overlayProvider}><div className={overlayStyles.overlayShade} /><div {...props} ref={ref} className={clsx(className, isCurrent && overlayStyles.isCurrent)} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} onMouseDown={event => {if (isCloseable && event.target === event.currentTarget) onClose?.();}}>{children}</div></div>, document.body);
 }
 
 function useDialogLifecycle(open: boolean, ref: React.RefObject<HTMLElement | null>, onClose?: () => void, closeable?: boolean) {
     useEffect(() => {
         if (!open) return;
         const previous = document.activeElement as HTMLElement | null;
-        const oldOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
         requestAnimationFrame(() => firstFocusable(ref.current)?.focus() ?? ref.current?.focus());
         const keydown = (event: globalThis.KeyboardEvent) => {
             if (event.key === 'Escape' && closeable) {event.preventDefault(); onClose?.();}
             if (event.key === 'Tab') trapTab(event, ref.current);
         };
         document.addEventListener('keydown', keydown);
-        return () => {document.removeEventListener('keydown', keydown); document.body.style.overflow = oldOverflow; previous?.focus();};
+        return () => {document.removeEventListener('keydown', keydown); previous?.focus();};
     }, [closeable, onClose, open, ref]);
 }
 
@@ -79,6 +87,15 @@ export function FluxFlyout({children, direction = 'vertical', isAutoWidth, label
         setPosition({x, y, openerWidth: box.width});
     }, [direction, margin, open]);
     useEffect(() => {if (!open) return; const close = (event: globalThis.KeyboardEvent) => event.key === 'Escape' && change(false); window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close);}, [open]);
+    useEffect(() => {
+        if (!open) return;
+        const closeOutside = (event: MouseEvent) => {
+            const target = event.target as Node | null;
+            if (target && !anchor.current?.contains(target) && !pane.current?.contains(target)) change(false);
+        };
+        document.addEventListener('mousedown', closeOutside);
+        return () => document.removeEventListener('mousedown', closeOutside);
+    }, [open]);
     return <span ref={anchor} className={flyoutStyles.flyout}>{opener(api)}{open && typeof document !== 'undefined' && createPortal(<div className={flyoutStyles.flyoutDialog} style={{position: 'fixed', left: position.x, top: position.y, zIndex: 11000}} role="presentation" onMouseDown={event => event.target === event.currentTarget && change(false)}><div ref={pane}><FluxPane className={clsx(flyoutStyles.flyoutPane, isAutoWidth && flyoutStyles.isAutoWidth)} style={{width: isAutoWidth ? position.openerWidth : width}} role="dialog" aria-label={label}>{children({close: api.close})}</FluxPane></div></div>, document.body)}</span>;
 }
 

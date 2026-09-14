@@ -543,9 +543,9 @@ export function FluxSplitView({ as: Component = "div", children, className, dire
         [sizes, setSizes] = useState(initial),
         [dragging, setDragging] = useState(false),
         root = useRef<HTMLElement>(null);
-    const update = (index: number, delta: number) => {
+    const update = (index: number, delta: number, base?: number[]) => {
         setSizes((current) => {
-            const next = [...current],
+            const next = [...(base ?? current)],
                 total = next[index] + next[index + 1],
                 left = Math.max(panes[index].props.minSize ?? 5, Math.min(panes[index].props.maxSize ?? 95, next[index] + delta)),
                 right = total - left;
@@ -581,10 +581,11 @@ export function FluxSplitView({ as: Component = "div", children, className, dire
                         }}
                         onPointerDown={(event) => {
                             const start = direction === "horizontal" ? event.clientX : event.clientY;
+                            const startSizes = [...sizes];
                             setDragging(true);
                             const move = (moveEvent: globalThis.PointerEvent) => {
                                     const size = direction === "horizontal" ? (root.current?.clientWidth ?? 1) : (root.current?.clientHeight ?? 1);
-                                    update(index, (((direction === "horizontal" ? moveEvent.clientX : moveEvent.clientY) - start) / size) * 100);
+                                    update(index, (((direction === "horizontal" ? moveEvent.clientX : moveEvent.clientY) - start) / size) * 100, startSizes);
                                 },
                                 up = () => {
                                     setDragging(false);

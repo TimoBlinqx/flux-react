@@ -44,6 +44,12 @@ function seededExpansion(options: FluxTreeViewOption[], depth: number, level = 0
     }
     return result;
 }
+function expansionKey(options: FluxTreeViewOption[], depth: number) {
+    const entries: string[] = [];
+    const visit = (nodes: FluxTreeViewOption[]) => nodes.forEach(node => {entries.push(`${typeof node.id}:${String(node.id)}:${node.children?.length ?? 0}`); if (node.children) visit(node.children);});
+    visit(options);
+    return `${depth}|${entries.join("|")}`;
+}
 function TreeNode({ expanded, levelColors, node, onExpand, trailing }: { expanded: boolean; levelColors?: Array<FluxColor | string>; node: FluxTreeFlatNode; onExpand(): void; trailing?: ReactNode }) {
     const color = node.color ?? levelColors?.[node.depth];
     const known = color !== undefined && ["gray", "primary", "danger", "info", "success", "warning"].includes(color);
@@ -82,6 +88,8 @@ function TreeNode({ expanded, levelColors, node, onExpand, trailing }: { expande
 export function FluxTreeView({ className, expandedDepth = 1, levelColors, onClick, onDoubleClick, options, trailing, ...props }: Omit<HTMLAttributes<HTMLDivElement>, "onClick" | "onDoubleClick"> & { expandedDepth?: number; levelColors?: Array<FluxColor | string>; onClick?: (option: FluxTreeViewOption) => void; onDoubleClick?: (option: FluxTreeViewOption) => void; options: FluxTreeViewOption[]; trailing?: (node: FluxTreeFlatNode) => ReactNode }) {
     const treeId = useId();
     const [expanded, setExpanded] = useState(() => seededExpansion(options, expandedDepth));
+    const seedKey = expansionKey(options, expandedDepth);
+    useEffect(() => setExpanded(seededExpansion(options, expandedDepth)), [seedKey]);
     const [highlighted, setHighlighted] = useState(-1);
     const visible = flattenTree(options, expanded);
     const toggle = (id: string | number) =>
@@ -171,13 +179,17 @@ export interface FluxFormTreeViewSelectOption extends FluxTreeViewOption {
 }
 export type FluxFormTreeViewSelectValue = string | number | null | Array<string | number | null>;
 export function FluxFormTreeViewSelect({ className, defaultValue, disabled, expandedDepth = 1, isCascading, isLoading, isMultiple, isReadonly, isSearchable, levelColors, name, onValueChange, options, placeholder, value }: { className?: string; defaultValue?: FluxFormTreeViewSelectValue; disabled?: boolean; expandedDepth?: number; isCascading?: boolean; isLoading?: boolean; isMultiple?: boolean; isReadonly?: boolean; isSearchable?: boolean; levelColors?: Array<FluxColor | string>; name?: string; onValueChange?: (value: FluxFormTreeViewSelectValue) => void; options: FluxFormTreeViewSelectOption[]; placeholder?: string; value?: FluxFormTreeViewSelectValue }) {
+    const selectId = useId();
     const controlled = value !== undefined;
     const [inner, setInner] = useState<FluxFormTreeViewSelectValue>(defaultValue ?? (isMultiple ? [] : null));
     const current = controlled ? value : inner;
     const selected = new Set(Array.isArray(current) ? current : current == null ? [] : [current]);
     const [open, setOpen] = useState(false),
         [search, setSearch] = useState(""),
-        [expanded, setExpanded] = useState(() => seededExpansion(options, expandedDepth));
+        [expanded, setExpanded] = useState(() => seededExpansion(options, expandedDepth)),
+        [highlighted, setHighlighted] = useState(0);
+    const seedKey = expansionKey(options, expandedDepth);
+    useEffect(() => setExpanded(seededExpansion(options, expandedDepth)), [seedKey]);
     const all = flattenTree(options, expanded, true);
     const visible = (search ? all.filter((node) => node.label.toLowerCase().includes(search.toLowerCase())) : flattenTree(options, expanded)) as FluxTreeFlatNode<FluxFormTreeViewSelectOption>[];
     const update = (next: FluxFormTreeViewSelectValue) => {
@@ -204,18 +216,40 @@ export function FluxFormTreeViewSelect({ className, defaultValue, disabled, expa
         if (node.hasChildren) setExpanded((old) => new Set(old).add(node.id));
     };
     const selectedNodes = all.filter((node) => selected.has(node.id));
+    const enabledIndexes = visible.map((node, index) => !node.disabled && !locked(node) ? index : -1).filter(index => index >= 0);
+    const activeIndex = enabledIndexes.includes(highlighted) ? highlighted : (enabledIndexes[0] ?? -1);
+    const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (disabled || isReadonly) return;
+        const fromSearch = event.target instanceof HTMLInputElement;
+        if (!open) {
+            if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {event.preventDefault(); setOpen(true); setHighlighted(enabledIndexes[0] ?? 0);}
+            return;
+        }
+        if (event.key === "Escape") {event.preventDefault(); setOpen(false); event.currentTarget.focus(); return;}
+        if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Home" || event.key === "End") {
+            event.preventDefault();
+            const position = enabledIndexes.indexOf(activeIndex);
+            if (event.key === "Home") setHighlighted(enabledIndexes[0] ?? 0);
+            else if (event.key === "End") setHighlighted(enabledIndexes.at(-1) ?? 0);
+            else setHighlighted(enabledIndexes[Math.max(0, Math.min(enabledIndexes.length - 1, position + (event.key === "ArrowDown" ? 1 : -1)))] ?? 0);
+        } else if (event.key === "Enter" || (event.key === " " && !fromSearch)) {
+            event.preventDefault();
+            const node = visible[activeIndex];
+            if (node) select(node);
+        }
+    };
     return (
-        <div className={clsx(formStyles.formSelect, disabled && formStyles.isDisabled, open && formStyles.isFocused, className)} role="combobox" aria-expanded={open} aria-disabled={disabled || undefined} aria-readonly={isReadonly || undefined} tabIndex={disabled ? -1 : 0} onClick={() => !disabled && !isReadonly && setOpen(!open)}>
+        <div className={clsx(formStyles.formSelect, disabled && formStyles.isDisabled, open && formStyles.isFocused, className)} role="combobox" aria-expanded={open} aria-controls={`${selectId}-listbox`} aria-activedescendant={open && visible[activeIndex] ? `${selectId}-option-${visible[activeIndex].id}` : undefined} aria-disabled={disabled || undefined} aria-readonly={isReadonly || undefined} tabIndex={disabled ? -1 : 0} onKeyDown={keyDown} onClick={() => !disabled && !isReadonly && setOpen(!open)}>
             {isMultiple ? selectedNodes.map((node) => <FluxTag key={node.id} label={node.label} isDeletable onDelete={() => update([...selected].filter((id) => id !== node.id) as Array<string | number>)} />) : (selectedNodes[0]?.label ?? placeholder)}
             {isLoading ? <FluxSpinner className={formStyles.formSelectIcon} size={16} /> : <FluxIcon className={formStyles.formSelectIcon} name="angles-up-down" size={16} />}
             {name && <input type="hidden" name={name} value={Array.isArray(current) ? current.map(String).join(",") : String(current ?? "")} />}
             {open && (
                 <div className={formStyles.formSelectPopup} onClick={(event) => event.stopPropagation()}>
                     {isSearchable && <input className={formStyles.formSelectInput} type="search" aria-label="Search" value={search} autoFocus onChange={(event) => setSearch(event.target.value)} />}
-                    <div className={treeSelectStyles.treeViewSelectList} role="listbox" aria-multiselectable={isMultiple || undefined}>
+                    <div id={`${selectId}-listbox`} className={treeSelectStyles.treeViewSelectList} role="listbox" aria-multiselectable={isMultiple || undefined}>
                         {visible.length === 0 && <div className={treeSelectStyles.treeViewSelectEmpty}>No items</div>}
                         {visible.map((node) => (
-                            <div key={node.id} className={clsx(treeSelectStyles.treeNode, node.selectable !== false && treeSelectStyles.isSelectable, node.selectable === false && node.hasChildren && treeSelectStyles.isExpandable, (node.disabled || locked(node)) && treeSelectStyles.isDisabled)} role={node.selectable === false ? "presentation" : "option"} aria-selected={node.selectable === false ? undefined : selected.has(node.id) || locked(node)} aria-disabled={node.disabled || locked(node) || undefined} onClick={() => select(node)}>
+                            <div id={`${selectId}-option-${node.id}`} key={node.id} className={clsx(treeSelectStyles.treeNode, node.selectable !== false && treeSelectStyles.isSelectable, node.selectable === false && node.hasChildren && treeSelectStyles.isExpandable, (node.disabled || locked(node)) && treeSelectStyles.isDisabled, visible[activeIndex]?.id === node.id && treeSelectStyles.isHighlighted)} role={node.selectable === false ? "presentation" : "option"} aria-selected={node.selectable === false ? undefined : selected.has(node.id) || locked(node)} aria-disabled={node.disabled || locked(node) || undefined} onMouseEnter={() => setHighlighted(visible.indexOf(node))} onClick={() => select(node)}>
                                 <TreeNode
                                     node={node}
                                     expanded={expanded.has(node.id) || Boolean(search)}
@@ -284,7 +318,9 @@ interface KanbanContextValue {
     onMoveColumn?: (event: FluxKanbanMoveColumnEvent) => void;
     reorderableColumns: boolean;
     registerColumn(id: string | number): () => void;
+    registerItem(id: string | number): () => void;
     resolveColumn(id: string): string | number;
+    resolveItem(id: string): string | number;
     setDrag(value: DragState | null): void;
 }
 const KanbanContext = createContext<KanbanContextValue | null>(null);
@@ -293,6 +329,7 @@ export function FluxKanban({ canMove, children, className, disabled = false, onM
     const [drag, setDrag] = useState<DragState | null>(null),
         [message, setMessage] = useState("");
     const columnIds = useRef(new Map<string, string | number>());
+    const itemIds = useRef(new Map<string, string | number>());
     const emitMove = (event: FluxKanbanMoveEvent) => {
         if (canMove?.(event) === false) {
             setMessage("Move not allowed");
@@ -312,8 +349,15 @@ export function FluxKanban({ canMove, children, className, disabled = false, onM
                 columnIds.current.set(String(id), id);
                 return () => columnIds.current.delete(String(id));
             },
+            registerItem(id: string | number) {
+                itemIds.current.set(String(id), id);
+                return () => itemIds.current.delete(String(id));
+            },
             resolveColumn(id: string) {
                 return columnIds.current.get(id) ?? id;
+            },
+            resolveItem(id: string) {
+                return itemIds.current.get(id) ?? id;
             },
             setDrag,
         }),
@@ -399,6 +443,7 @@ export function FluxKanbanItem({ children, className, columnId, disabled = false
     const board = useContext(KanbanContext),
         swimlaneId = useContext(SwimlaneContext),
         [grabbed, setGrabbed] = useState(false);
+    useEffect(() => board?.registerItem(itemId), [board, itemId]);
     if (!board) throw new Error("FluxKanbanItem must be inside FluxKanban");
     const inactive = disabled || board.disabled;
     const begin = (event: DragEvent<HTMLDivElement>) => {
@@ -422,7 +467,14 @@ export function FluxKanbanItem({ children, className, columnId, disabled = false
         const columns = Array.from(event.currentTarget.closest('[aria-roledescription="Kanban board"]')?.querySelectorAll<HTMLElement>("[data-kanban-column]") ?? []);
         const current = columns.findIndex((column) => column.dataset.kanbanColumn === String(columnId));
         const target = event.key === "ArrowLeft" ? columns[current - 1] : event.key === "ArrowRight" ? columns[current + 1] : columns[current];
-            if (target) board.onMove?.({ itemId, fromColumnId: columnId, fromSwimlaneId: swimlaneId, toColumnId: board.resolveColumn(target.dataset.kanbanColumn!), toSwimlaneId: target.closest<HTMLElement>("[data-kanban-swimlane]")?.dataset.kanbanSwimlane });
+        if (!target) return;
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            const items = Array.from(target.querySelectorAll<HTMLElement>("[data-kanban-item]")), index = items.findIndex(element => element.dataset.kanbanItemId === String(itemId));
+            if (event.key === "ArrowUp" && index > 0) board.onMove?.({itemId, fromColumnId: columnId, fromSwimlaneId: swimlaneId, toColumnId: columnId, toSwimlaneId: swimlaneId, beforeItemId: board.resolveItem(items[index - 1].dataset.kanbanItemId!)});
+            else if (event.key === "ArrowDown" && index >= 0 && index < items.length - 1) board.onMove?.({itemId, fromColumnId: columnId, fromSwimlaneId: swimlaneId, toColumnId: columnId, toSwimlaneId: swimlaneId, beforeItemId: items[index + 2]?.dataset.kanbanItemId ? board.resolveItem(items[index + 2].dataset.kanbanItemId!) : undefined});
+            return;
+        }
+        board.onMove?.({ itemId, fromColumnId: columnId, fromSwimlaneId: swimlaneId, toColumnId: board.resolveColumn(target.dataset.kanbanColumn!), toSwimlaneId: target.closest<HTMLElement>("[data-kanban-swimlane]")?.dataset.kanbanSwimlane });
     };
     return (
         <div {...props} className={clsx(kanbanStyles.kanbanItem, board.drag?.itemId === itemId && kanbanStyles.isDragging, grabbed && kanbanStyles.isGrabbed, inactive && kanbanStyles.isDisabled, className)} data-kanban-item data-kanban-item-id={itemId} role="listitem" aria-roledescription="Kanban item" aria-disabled={inactive || undefined} draggable={!inactive} tabIndex={inactive ? -1 : 0} onDragStart={begin} onDragEnd={() => board.setDrag(null)} onKeyDown={key}>

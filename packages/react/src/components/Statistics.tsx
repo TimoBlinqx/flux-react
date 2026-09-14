@@ -52,29 +52,32 @@ const palette = (items: readonly unknown[]) => items.map((item, index) => resolv
 function chartProps<S>(props: CartesianChartProps<S>) {
     return { ...props, palette: palette(props.series), t: (key: string) => key, styles: chartStyles };
 }
+function splitCartesianProps<S>({ advancedOptions, labels, series, splitLines, tooltip, tooltipValueFormatter, xAxisLabels, yAxisLabels, ...domProps }: CartesianChartProps<S>) {
+    return { chart: { advancedOptions, labels, series, splitLines, tooltip, tooltipValueFormatter, xAxisLabels, yAxisLabels }, domProps };
+}
 export function FluxStatisticsLineChart(props: CartesianChartProps<FluxStatisticsChartLineSeries>) {
-    return <FluxStatisticsChart options={buildLineChartOptions(chartProps(props))} />;
+    const {chart, domProps} = splitCartesianProps(props); return <FluxStatisticsChart {...domProps} options={buildLineChartOptions(chartProps(chart))} />;
 }
 export function FluxStatisticsAreaChart(props: CartesianChartProps<FluxStatisticsChartAreaSeries>) {
-    return <FluxStatisticsChart options={buildAreaChartOptions(chartProps(props))} />;
+    const {chart, domProps} = splitCartesianProps(props); return <FluxStatisticsChart {...domProps} options={buildAreaChartOptions(chartProps(chart))} />;
 }
 export function FluxStatisticsBarChart(props: CartesianChartProps<FluxStatisticsChartBarSeries>) {
-    return <FluxStatisticsChart options={buildBarChartOptions(chartProps(props))} />;
+    const {chart, domProps} = splitCartesianProps(props); return <FluxStatisticsChart {...domProps} options={buildBarChartOptions(chartProps(chart))} />;
 }
 export function FluxStatisticsMixedChart(props: CartesianChartProps<FluxStatisticsChartMixedSeries>) {
-    return <FluxStatisticsChart options={buildMixedChartOptions(chartProps(props))} />;
+    const {chart, domProps} = splitCartesianProps(props); return <FluxStatisticsChart {...domProps} options={buildMixedChartOptions(chartProps(chart))} />;
 }
 export function FluxStatisticsScatterChart(props: Omit<CartesianChartProps<FluxStatisticsChartScatterSeries>, "labels">) {
-    return <FluxStatisticsChart options={buildScatterChartOptions(chartProps(props))} />;
+    const {chart, domProps} = splitCartesianProps(props); return <FluxStatisticsChart {...domProps} options={buildScatterChartOptions(chartProps(chart))} />;
 }
 export function FluxStatisticsBubbleChart(props: Omit<CartesianChartProps<FluxStatisticsChartBubbleSeries>, "labels">) {
-    return <FluxStatisticsChart options={buildBubbleChartOptions(chartProps(props))} />;
+    const {chart, domProps} = splitCartesianProps(props); return <FluxStatisticsChart {...domProps} options={buildBubbleChartOptions(chartProps(chart))} />;
 }
 export function FluxStatisticsBoxPlotChart(props: Omit<CartesianChartProps<FluxStatisticsChartBoxPlotSeries>, "tooltipValueFormatter">) {
-    return <FluxStatisticsChart options={buildBoxPlotChartOptions(chartProps(props))} />;
+    const {chart, domProps} = splitCartesianProps(props); return <FluxStatisticsChart {...domProps} options={buildBoxPlotChartOptions(chartProps(chart))} />;
 }
 export function FluxStatisticsCandlestickChart(props: Omit<CartesianChartProps<FluxStatisticsChartCandlestickSeries>, "tooltipValueFormatter">) {
-    return <FluxStatisticsChart options={buildCandlestickChartOptions(chartProps(props))} />;
+    const {chart, domProps} = splitCartesianProps(props); return <FluxStatisticsChart {...domProps} options={buildCandlestickChartOptions(chartProps(chart))} />;
 }
 interface SliceChartProps extends HTMLAttributes<HTMLDivElement> {
     advancedOptions?: EChartsOption;
@@ -84,26 +87,27 @@ interface SliceChartProps extends HTMLAttributes<HTMLDivElement> {
     tooltipValueFormatter?: ChartTooltipValueFormatter;
 }
 const sliceProps = (props: SliceChartProps) => ({ ...props, palette: palette(props.slices), tooltipItems: props.slices.map((item, index) => ({ name: item.label, value: item.formatted ?? item.value, color: resolveChartColor(item.color) ?? CHART_DEFAULT_COLORS[index % CHART_DEFAULT_COLORS.length] })), t: (key: string) => key, styles: chartStyles });
+function splitSliceProps({advancedOptions, slices, title, tooltip, tooltipValueFormatter, ...domProps}: SliceChartProps) {return {chart: {advancedOptions, slices, title, tooltip, tooltipValueFormatter}, domProps};}
 export function FluxStatisticsPieChart(props: SliceChartProps) {
-    return <FluxStatisticsChart options={buildPieChartOptions(sliceProps(props))} />;
+    const {chart, domProps} = splitSliceProps(props); return <FluxStatisticsChart {...domProps} options={buildPieChartOptions(sliceProps(chart))} />;
 }
 export function FluxStatisticsDonutChart(props: SliceChartProps) {
-    return <FluxStatisticsChart options={buildDonutChartOptions(sliceProps(props))} />;
+    const {chart, domProps} = splitSliceProps(props); return <FluxStatisticsChart {...domProps} options={buildDonutChartOptions(sliceProps(chart))} />;
 }
 export function FluxStatisticsPolarAreaChart(props: SliceChartProps) {
-    return <FluxStatisticsChart options={buildPolarAreaChartOptions(sliceProps(props))} />;
+    const {chart, domProps} = splitSliceProps(props); return <FluxStatisticsChart {...domProps} options={buildPolarAreaChartOptions(sliceProps(chart))} />;
 }
-export function FluxStatisticsRadarChart({ advancedOptions, indicators, series, tooltip }: { advancedOptions?: EChartsOption; indicators: readonly FluxStatisticsChartRadarIndicator[]; series: readonly FluxStatisticsChartRadarSeries[]; tooltip?: boolean }) {
-    return <FluxStatisticsChart options={buildRadarChartOptions({ advancedOptions, indicators, series, tooltip, palette: palette(series), t: (key) => key, styles: chartStyles })} />;
+export function FluxStatisticsRadarChart({ advancedOptions, indicators, series, tooltip, ...props }: HTMLAttributes<HTMLDivElement> & { advancedOptions?: EChartsOption; indicators: readonly FluxStatisticsChartRadarIndicator[]; series: readonly FluxStatisticsChartRadarSeries[]; tooltip?: boolean }) {
+    return <FluxStatisticsChart {...props} options={buildRadarChartOptions({ advancedOptions, indicators, series, tooltip, palette: palette(series), t: (key) => key, styles: chartStyles })} />;
 }
-export function FluxStatisticsRadialBar({ advancedOptions, series, tooltip }: { advancedOptions?: EChartsOption; series: readonly FluxStatisticsChartGaugeSeries[]; tooltip?: boolean }) {
-    return <FluxStatisticsChart options={buildGaugeChartOptions({ advancedOptions, series, tooltip, palette: palette(series), t: (key) => key, styles: chartStyles })} />;
+export function FluxStatisticsRadialBar({ advancedOptions, series, tooltip, ...props }: HTMLAttributes<HTMLDivElement> & { advancedOptions?: EChartsOption; series: readonly FluxStatisticsChartGaugeSeries[]; tooltip?: boolean }) {
+    return <FluxStatisticsChart {...props} options={buildGaugeChartOptions({ advancedOptions, series, tooltip, palette: palette(series), t: (key) => key, styles: chartStyles })} />;
 }
-export function FluxStatisticsHeatmapChart({ advancedOptions, series, tooltip, xAxisLabels, xLabels = [], yAxisLabels, yLabels = [] }: { advancedOptions?: EChartsOption; series: readonly FluxStatisticsChartHeatmapSeries[]; tooltip?: boolean; xAxisLabels?: boolean; xLabels?: readonly string[]; yAxisLabels?: boolean; yLabels?: readonly string[] }) {
-    return <FluxStatisticsChart options={buildHeatmapChartOptions({ advancedOptions, series, tooltip, xAxisLabels, xLabels, yAxisLabels, yLabels, t: (key) => key, styles: chartStyles })} />;
+export function FluxStatisticsHeatmapChart({ advancedOptions, series, tooltip, xAxisLabels, xLabels = [], yAxisLabels, yLabels = [], ...props }: HTMLAttributes<HTMLDivElement> & { advancedOptions?: EChartsOption; series: readonly FluxStatisticsChartHeatmapSeries[]; tooltip?: boolean; xAxisLabels?: boolean; xLabels?: readonly string[]; yAxisLabels?: boolean; yLabels?: readonly string[] }) {
+    return <FluxStatisticsChart {...props} options={buildHeatmapChartOptions({ advancedOptions, series, tooltip, xAxisLabels, xLabels, yAxisLabels, yLabels, t: (key) => key, styles: chartStyles })} />;
 }
-export function FluxStatisticsTreemapChart({ advancedOptions, nodes, tooltip }: { advancedOptions?: EChartsOption; nodes: readonly FluxStatisticsChartTreemapNode[]; tooltip?: boolean }) {
-    return <FluxStatisticsChart options={buildTreemapChartOptions({ advancedOptions, nodes, tooltip, t: (key) => key, styles: chartStyles })} />;
+export function FluxStatisticsTreemapChart({ advancedOptions, nodes, tooltip, ...props }: HTMLAttributes<HTMLDivElement> & { advancedOptions?: EChartsOption; nodes: readonly FluxStatisticsChartTreemapNode[]; tooltip?: boolean }) {
+    return <FluxStatisticsChart {...props} options={buildTreemapChartOptions({ advancedOptions, nodes, tooltip, t: (key) => key, styles: chartStyles })} />;
 }
 export function FluxStatisticsSparkline({ className, color, options, series, variant = "line", ...props }: HTMLAttributes<HTMLDivElement> & { color?: FluxColor | `#${string}`; options?: EChartsOption; series: readonly SparklineSeriesItem[]; variant?: SparklineVariant }) {
     const resolved = resolveChartColor(color) ?? CHART_DEFAULT_COLORS[0];

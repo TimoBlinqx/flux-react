@@ -55,6 +55,18 @@ describe('compound interactions', () => {
         expect(separator).toHaveAttribute('aria-valuenow', '52');
     });
 
+    it('applies pointer drag displacement from the starting sizes', () => {
+        const {container} = render(<FluxSplitView><FluxSplitViewPane>One</FluxSplitViewPane><FluxSplitViewPane>Two</FluxSplitViewPane></FluxSplitView>);
+        const root = container.firstElementChild as HTMLElement;
+        Object.defineProperty(root, 'clientWidth', {configurable: true, value: 1000});
+        const separator = screen.getByRole('separator');
+        fireEvent.pointerDown(separator, {clientX: 0});
+        fireEvent.pointerMove(window, {clientX: 100});
+        fireEvent.pointerMove(window, {clientX: 200});
+        expect(separator).toHaveAttribute('aria-valuenow', '70');
+        fireEvent.pointerUp(window);
+    });
+
     it('moves the focal point with arrow keys', () => {
         const onValueChange = vi.fn();
         render(<FluxFocalPointEditor src="image.jpg" value={[50, 50]} onValueChange={onValueChange} />);

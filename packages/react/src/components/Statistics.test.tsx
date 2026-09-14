@@ -38,9 +38,16 @@ describe("statistics components", () => {
     });
 
     it("mounts ECharts and sends generated options", async () => {
-        render(<FluxStatisticsBarChart labels={["Jan"]} series={[{ name: "Sales", data: [4] }]} />);
+        const onClick = vi.fn();
+        render(<FluxStatisticsBarChart aria-label="Sales chart" className="custom-chart" data-chart="sales" onClick={onClick} style={{height: 240}} labels={["Jan"]} series={[{ name: "Sales", data: [4] }]} />);
         await waitFor(() => expect(init).toHaveBeenCalled());
         expect(chart.setOption).toHaveBeenCalledWith(expect.objectContaining({ series: expect.any(Array) }));
+        const element = screen.getByLabelText("Sales chart");
+        expect(element).toHaveClass("custom-chart");
+        expect(element).toHaveAttribute("data-chart", "sales");
+        expect(element).toHaveStyle({height: "240px"});
+        fireEvent.click(element);
+        expect(onClick).toHaveBeenCalledOnce();
     });
 
     it("renders KPI, comparison, meter, and accessible detail rows", () => {

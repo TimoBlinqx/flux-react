@@ -2,8 +2,8 @@ import {fireEvent, render, screen} from '@testing-library/react';
 import {DateTime} from 'luxon';
 import {describe, expect, it, vi} from 'vitest';
 import {
-    FluxFader, FluxFaderItem, FluxFormDateInput, FluxFormFader, FluxFormRepeater,
-    FluxFormSelect
+    FluxFader, FluxFaderItem, FluxFormCombobox, FluxFormDateInput, FluxFormDateTimeInput,
+    FluxFormFader, FluxFormRepeater, FluxFormSelect
 } from './SelectionForms';
 
 describe('selection and date controls', () => {
@@ -20,6 +20,22 @@ describe('selection and date controls', () => {
         fireEvent.change(screen.getByLabelText('Date'), {target: {value: '2026-09-12'}});
         expect(onValueChange.mock.calls[0][0].toISODate()).toBe('2026-09-12');
     });
+
+    it('keeps created options selected in an uncontrolled multiple combobox', () => {
+        const onValueChange = vi.fn();
+        render(<FluxFormCombobox aria-label="Tags" isCreatable isMultiple defaultValue={['existing']} options={[{label: 'Existing', value: 'existing'}]} onValueChange={onValueChange} />);
+        const search = screen.getByRole('searchbox', {name: 'Tags search'});
+        fireEvent.change(search, {target: {value: 'created'}});
+        fireEvent.keyDown(search, {key: 'Enter'});
+        expect(onValueChange).toHaveBeenLastCalledWith(['existing', 'created']);
+        expect(screen.getByRole('option', {name: 'created'})).toHaveProperty('selected', true);
+    });
+
+    it('names both native date-time fields for form submission', () => {
+        const {container} = render(<FluxFormDateTimeInput name="startsAt" />);
+        expect(container.querySelector('input[type="date"]')).toHaveAttribute('name', 'startsAt');
+        expect(container.querySelector('input[type="time"]')).toHaveAttribute('name', 'startsAt-time');
+    });
 });
 
 describe('faders and repeaters', () => {
@@ -28,6 +44,13 @@ describe('faders and repeaters', () => {
         render(<FluxFormFader ariaLabel="Volume" value={5} max={10} onValueChange={onValueChange} />);
         fireEvent.keyDown(screen.getByRole('slider', {name: 'Volume'}), {key: 'ArrowRight'});
         expect(onValueChange).toHaveBeenCalledWith(6);
+    });
+
+    it('does not change a read-only fader from the keyboard', () => {
+        const onValueChange = vi.fn();
+        render(<FluxFormFader ariaLabel="Volume" isReadonly value={5} max={10} onValueChange={onValueChange} />);
+        fireEvent.keyDown(screen.getByRole('slider', {name: 'Volume'}), {key: 'ArrowRight'});
+        expect(onValueChange).not.toHaveBeenCalled();
     });
 
     it('only exposes the current carousel item', () => {

@@ -214,17 +214,29 @@ export interface FluxDialogRegistration {
     unregister(): void;
 }
 let dialogs: number[] = [];
+let overflowBeforeDialogs: string | undefined;
 export function registerDialog(): FluxDialogRegistration {
     const id = ++nextNotificationId;
+    if (dialogs.length === 0 && typeof document !== "undefined") {
+        overflowBeforeDialogs = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+    }
     dialogs = [...dialogs, id];
     notify();
+    let registered = true;
     return {
         id,
         getPosition: () => dialogs.indexOf(id),
         isCurrent: () => dialogs.at(-1) === id,
         setShadeOpacity() {},
         unregister() {
+            if (!registered) return;
+            registered = false;
             dialogs = dialogs.filter((value) => value !== id);
+            if (dialogs.length === 0 && typeof document !== "undefined") {
+                document.body.style.overflow = overflowBeforeDialogs ?? "";
+                overflowBeforeDialogs = undefined;
+            }
             notify();
         },
     };

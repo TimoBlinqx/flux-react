@@ -1,6 +1,7 @@
 import {fireEvent, render, screen} from '@testing-library/react';
 import {describe, expect, it, vi} from 'vitest';
-import {FluxFormField, FluxFormInput, FluxToggle} from './Forms';
+import {FluxFormCheckbox, FluxFormField, FluxFormInput, FluxFormTextArea, FluxToggle} from './Forms';
+import {FluxDisabled} from './DisplayExtended';
 
 describe('React form components', () => {
     it('connects a field label and error to its input', () => {
@@ -22,5 +23,18 @@ describe('React form components', () => {
         render(<FluxToggle aria-label="Enabled" onCheckedChange={onCheckedChange} />);
         fireEvent.click(screen.getByRole('switch', {name: 'Enabled'}));
         expect(onCheckedChange).toHaveBeenCalledWith(true);
+    });
+
+    it('disables core controls through FluxDisabled context', () => {
+        render(<FluxDisabled>
+            <FluxFormInput aria-label="Input" />
+            <FluxFormTextArea aria-label="Textarea" />
+            <FluxFormCheckbox aria-label="Checkbox" />
+            <FluxToggle aria-label="Toggle" />
+        </FluxDisabled>);
+        expect(screen.getByLabelText('Input')).toBeDisabled();
+        expect(screen.getByLabelText('Textarea')).toBeDisabled();
+        expect(screen.getByLabelText('Checkbox')).toBeDisabled();
+        expect(screen.getByLabelText('Toggle')).toBeDisabled();
     });
 });
