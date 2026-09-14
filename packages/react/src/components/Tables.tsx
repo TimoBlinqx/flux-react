@@ -1,5 +1,5 @@
 import { clsx } from "clsx";
-import { Children, createContext, isValidElement, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Children, createContext, isValidElement, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, HTMLAttributes, KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from "react";
 import type { FluxColor, FluxIconName, FluxStyle } from "../types";
 import { FluxActionStack } from "./Composition";
@@ -27,11 +27,70 @@ interface TableContextValue {
 }
 const TableContext = createContext<TableContextValue | null>(null);
 
+function useTableColumnIndex(ref: React.RefObject<HTMLElement | null>, columns: FluxTableColumnDef[]) {
+    const [columnIndex, setColumnIndex] = useState(0);
+    useLayoutEffect(() => {
+        const element = ref.current;
+        if (!element?.parentElement) return;
+        let next = 0;
+        for (const sibling of Array.from(element.parentElement.children)) {
+            if (sibling === element) break;
+            next += Math.max(1, Number(sibling.getAttribute("aria-colspan") ?? 1));
+        }
+        setColumnIndex(current => current === next ? current : next);
+    }, [columns, ref]);
+    return columnIndex;
+}
+
 function columnTrack(column: FluxTableColumnDef) {
     if (column.width !== undefined) return `${column.width}px`;
     if (column.isShrinking) return "auto";
     if (column.minWidth === undefined && column.maxWidth === undefined) return "1fr";
     return `minmax(${column.minWidth === undefined ? "auto" : `${column.minWidth}px`}, ${column.maxWidth === undefined ? "1fr" : `${column.maxWidth}px`})`;
+}
+
+function inferColumns(node: ReactNode, result: FluxTableColumnDef[] = []): FluxTableColumnDef[] {
+    Children.forEach(node, child => {
+        if (!isValidElement(child)) return;
+        if (child.type === FluxTableHeader) {
+            const props = child.props as FluxTableHeaderProps;
+            result.push({
+                align: props.align,
+                isNumeric: props.isNumeric,
+                isShrinking: props.isShrinking,
+                maxWidth: props.maxWidth,
+                minWidth: props.minWidth,
+                noWrap: props.noWrap,
+                pinned: props.pinned === true ? "start" : props.pinned || undefined,
+                width: props.width,
+            });
+            return;
+        }
+        inferColumns((child.props as { children?: ReactNode }).children, result);
+    });
+    return result;
+}
+
+function inferFallbackColumnCount(node: ReactNode): number {
+    let count = 0;
+    let foundRow = false;
+    const visit = (value: ReactNode) => {
+        Children.forEach(value, child => {
+            if (foundRow || !isValidElement(child)) return;
+            if (child.type === FluxTableRow) {
+                foundRow = true;
+                Children.forEach((child.props as { children?: ReactNode }).children, cell => {
+                    if (!isValidElement(cell)) return;
+                    const props = cell.props as { colspan?: number };
+                    count += props.colspan ?? 1;
+                });
+                return;
+            }
+            visit((child.props as { children?: ReactNode }).children);
+        });
+    };
+    visit(node);
+    return count;
 }
 
 export interface FluxTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
@@ -53,8 +112,13 @@ export interface FluxTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
 export function FluxTable({ ariaRowcount, caption, captionSide = "bottom", children, className, columns = [], empty, footer, header, isFilled, isHoverable, isLoading, isSticky, loading, pagination, style, ...props }: FluxTableProps) {
     const captionId = useId();
     const [activeRow, setActiveRow] = useState<HTMLElement | null>(null);
-    const template = columns.length ? columns.map(columnTrack).join(" ") : undefined;
-    const context = useMemo(() => ({ activeRow, columns, setActiveRow }), [activeRow, columns]);
+    const inferredColumns = useMemo(() => inferColumns(header), [header]);
+    const resolvedColumns = columns.length ? columns : inferredColumns;
+    const fallbackColumnCount = resolvedColumns.length ? 0 : inferFallbackColumnCount(children);
+    const template = resolvedColumns.length
+        ? resolvedColumns.map(columnTrack).join(" ")
+        : fallbackColumnCount > 0 ? `repeat(${fallbackColumnCount}, auto)` : "none";
+    const context = useMemo(() => ({ activeRow, columns: resolvedColumns, setActiveRow }), [activeRow, resolvedColumns]);
     return (
         <TableContext.Provider value={context}>
             <div {...props} className={clsx(tableStyles.table, isHoverable && tableStyles.isHoverable, isSticky && tableStyles.isSticky, className)} style={{ ...style, "--flux-table-columns": template } as FluxStyle}>
@@ -69,7 +133,7 @@ export function FluxTable({ ariaRowcount, caption, captionSide = "bottom", child
                     </div>
                     {isFilled && (
                         <FluxTableRow className={tableStyles.tableFill} aria-hidden="true">
-                            {columns.map((_, index) => (
+                            {resolvedColumns.map((_, index) => (
                                 <FluxTableCell key={index} />
                             ))}
                         </FluxTableRow>
@@ -156,23 +220,31 @@ export interface FluxTableCellProps extends Omit<HTMLAttributes<HTMLDivElement>,
     rowspan?: number;
 }
 export function FluxTableCell({ align, children, className, colspan, content, contentDirection = "row", contentGap, isNumeric, noWrap, pinned, rowspan, style, ...props }: FluxTableCellProps) {
-    const pinnedSide = pinned === true ? "start" : pinned;
+    const context = useContext(TableContext);
+    const ref = useRef<HTMLDivElement>(null);
+    const columnIndex = useTableColumnIndex(ref, context?.columns ?? []);
+    const column = colspan ? undefined : context?.columns[columnIndex];
+    const effectiveAlign = align ?? column?.align;
+    const effectiveIsNumeric = isNumeric || column?.isNumeric;
+    const effectiveNoWrap = noWrap || column?.noWrap;
+    const pinnedSide = pinned === true ? "start" : pinned || column?.pinned;
     return (
         <div
             {...props}
-            className={clsx(tableStyles.tableCell, content !== undefined && tableStyles.isRaw, isNumeric && tableStyles.isNumeric, noWrap && tableStyles.isNoWrap, rowspan && tableStyles.hasRowspan, pinnedSide === "start" && tableStyles.isPinnedStart, pinnedSide === "end" && tableStyles.isPinnedEnd, className)}
+            ref={ref}
+            className={clsx(tableStyles.tableCell, content !== undefined && tableStyles.isRaw, effectiveIsNumeric && tableStyles.isNumeric, effectiveNoWrap && tableStyles.isNoWrap, rowspan && tableStyles.hasRowspan, pinnedSide === "start" && tableStyles.isPinnedStart, pinnedSide === "end" && tableStyles.isPinnedEnd, className)}
             role="cell"
             aria-colspan={colspan}
             aria-rowspan={rowspan}
             style={{
                 ...style,
-                alignItems: contentDirection === "column" ? align : undefined,
+                alignItems: contentDirection === "column" ? effectiveAlign : undefined,
                 flexFlow: content === undefined ? contentDirection : undefined,
                 gap: contentGap,
                 gridColumn: colspan ? `span ${colspan}` : undefined,
                 gridRow: rowspan ? `span ${rowspan}` : undefined,
-                justifyContent: contentDirection === "row" ? align : undefined,
-                textAlign: align,
+                justifyContent: contentDirection === "row" ? effectiveAlign : undefined,
+                textAlign: effectiveAlign,
             }}
         >
             {content ?? children}
@@ -224,7 +296,7 @@ export function FluxTableHeader({ align, children, className, dataType = "text",
         window.addEventListener("pointerup", up);
     };
     return (
-        <div {...props} className={clsx(tableStyles.tableHeader, isNumeric && tableStyles.isNumeric, isResizable && tableStyles.isResizable, isShrinking && tableStyles.isShrinking, pinnedSide === "start" && tableStyles.isPinnedStart, pinnedSide === "end" && tableStyles.isPinnedEnd, className)} role="columnheader" aria-sort={isSortable ? (sort ?? "none") : undefined} style={{ ...style, justifyContent: align, textAlign: align, width: resizedWidth }}>
+        <div {...props} className={clsx(tableStyles.tableHeader, isResizable && tableStyles.isResizable, isShrinking && tableStyles.isShrinking, pinnedSide === "start" && tableStyles.isPinnedStart, pinnedSide === "end" && tableStyles.isPinnedEnd, className)} role="columnheader" aria-sort={isSortable ? (sort ?? "none") : undefined} style={{ ...style, justifyContent: align, textAlign: align, width: resizedWidth }}>
             {children}
             {isSortable && (
                 <button className={tableStyles.tableSort} type="button" aria-label="Sort" onClick={cycleSort}>

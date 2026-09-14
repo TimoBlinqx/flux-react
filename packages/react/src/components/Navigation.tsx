@@ -75,8 +75,24 @@ const SegmentContext = createContext<SegmentContextValue | undefined>(undefined)
 
 export function FluxSegmentedControl({children, className, isFill, onValueChange, size = 'medium', value, ...props}: HTMLAttributes<HTMLDivElement> & {isFill?: boolean; onValueChange: (value: SegmentValue) => void; size?: FluxSize; value?: SegmentValue}) {
     const ref = useRef<HTMLDivElement>(null);
+    const [highlight, setHighlight] = useState({left: 0, width: 0});
+    useLayoutEffect(() => {
+        const control = ref.current;
+        if (!control) return;
+        const update = () => {
+            const active = control.querySelector<HTMLElement>('[role=radio][aria-checked=true]');
+            const width = active?.offsetWidth ?? 0;
+            setHighlight(current => current.left === (active?.offsetLeft ?? 0) && current.width === width ? current : {left: active?.offsetLeft ?? 0, width});
+        };
+        update();
+        const resize = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update);
+        resize?.observe(control);
+        const mutation = typeof MutationObserver === 'undefined' ? undefined : new MutationObserver(update);
+        mutation?.observe(control, {attributes: true, childList: true, subtree: true});
+        return () => { resize?.disconnect(); mutation?.disconnect(); };
+    }, [children, size, value]);
     const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => rove(event, '[role=radio]:not(:disabled)', false);
-    return <SegmentContext.Provider value={{size, value, select: onValueChange}}><div {...props} ref={ref} className={clsx(isFill ? segmentedStyles.segmentedControlFill : segmentedStyles.segmentedControlInline, className)} role="radiogroup" onKeyDown={onKeyDown}>{children}</div></SegmentContext.Provider>;
+    return <SegmentContext.Provider value={{size, value, select: onValueChange}}><div {...props} ref={ref} className={clsx(isFill ? segmentedStyles.segmentedControlFill : segmentedStyles.segmentedControlInline, className)} role="radiogroup" onKeyDown={onKeyDown}>{highlight.width > 0 && <div className={segmentedStyles.segmentedControlHighlight} style={{left: highlight.left, width: highlight.width}} />}{children}</div></SegmentContext.Provider>;
 }
 
 export function FluxSegmentedControlItem({children, className, icon, label, value, ...props}: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'value'> & {icon?: FluxIconName; label?: ReactNode; value: SegmentValue}) {

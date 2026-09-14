@@ -24,16 +24,20 @@ export type FluxTreeFlatNode<T extends FluxTreeViewOption = FluxTreeViewOption> 
     ancestorIds: Array<string | number>;
     depth: number;
     hasChildren: boolean;
+    isLast: boolean;
+    lineGuides: boolean[];
 };
-function flattenTree<T extends FluxTreeViewOption>(options: T[], expanded: Set<string | number>, all = false, depth = 0, ancestors: Array<string | number> = []): FluxTreeFlatNode<T>[] {
-    return options.flatMap((option) => {
-        const flat = { ...option, depth, ancestorIds: ancestors, hasChildren: Boolean(option.children?.length) } as FluxTreeFlatNode<T>;
-        return [flat, ...(option.children && (all || expanded.has(option.id)) ? flattenTree(option.children as T[], expanded, all, depth + 1, [...ancestors, option.id]) : [])];
+function flattenTree<T extends FluxTreeViewOption>(options: T[], expanded: Set<string | number>, all = false, depth = 0, ancestors: Array<string | number> = [], parentGuides: boolean[] = []): FluxTreeFlatNode<T>[] {
+    return options.flatMap((option, index) => {
+        const isLast = index === options.length - 1;
+        const flat = { ...option, depth, ancestorIds: ancestors, hasChildren: Boolean(option.children?.length), isLast, lineGuides: parentGuides } as FluxTreeFlatNode<T>;
+        const childGuides = depth === 0 ? [] : [...parentGuides, !isLast];
+        return [flat, ...(option.children && (all || expanded.has(option.id)) ? flattenTree(option.children as T[], expanded, all, depth + 1, [...ancestors, option.id], childGuides) : [])];
     });
 }
 function seededExpansion(options: FluxTreeViewOption[], depth: number, level = 0, result = new Set<string | number>()) {
     for (const option of options) {
-        if (option.children?.length && level < depth) {
+        if (option.children?.length && level < depth - 1) {
             result.add(option.id);
             seededExpansion(option.children, depth, level + 1, result);
         }
@@ -41,29 +45,33 @@ function seededExpansion(options: FluxTreeViewOption[], depth: number, level = 0
     return result;
 }
 function TreeNode({ expanded, levelColors, node, onExpand, trailing }: { expanded: boolean; levelColors?: Array<FluxColor | string>; node: FluxTreeFlatNode; onExpand(): void; trailing?: ReactNode }) {
-    const color = node.color ?? levelColors?.[node.depth] ?? "gray";
-    const known = ["gray", "primary", "danger", "info", "success", "warning"].includes(color);
-    const colorClass = known ? treeNodeStyles[`treeNodeMarker${color[0].toUpperCase()}${color.slice(1)}`] : treeNodeStyles.treeNodeMarkerCustom;
+    const color = node.color ?? levelColors?.[node.depth];
+    const known = color !== undefined && ["gray", "primary", "danger", "info", "success", "warning"].includes(color);
+    const colorClass = color === undefined ? undefined : known ? treeNodeStyles[`treeNodeMarker${color[0].toUpperCase()}${color.slice(1)}`] : treeNodeStyles.treeNodeMarkerCustom;
     return (
         <>
-            {node.depth > 0 && Array.from({ length: node.depth }, (_, index) => <span key={index} className={treeNodeStyles.treeIndent} />)}
-            {node.hasChildren ? (
-                <button
-                    type="button"
-                    className={clsx(treeNodeStyles.treeNodeMarker, treeNodeStyles.isToggle, expanded && treeNodeStyles.isExpanded, colorClass)}
-                    style={{ "--tree-marker-color": known ? undefined : color } as FluxStyle}
-                    aria-label={expanded ? "Collapse" : "Expand"}
-                    aria-expanded={expanded}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        onExpand();
-                    }}
-                >
-                    <FluxIcon name="angle-right" size={14} />
-                </button>
-            ) : (
-                <span className={clsx(treeNodeStyles.treeNodeMarker, colorClass)} style={{ "--tree-marker-color": known ? undefined : color } as FluxStyle} />
-            )}
+            <div className={clsx(treeNodeStyles.treeNodeLineArea, expanded && node.hasChildren && treeNodeStyles.hasDropLine)} style={{ "--tree-marker-column": node.lineGuides.length + (node.depth > 0 ? 1 : 0) } as FluxStyle}>
+                {node.lineGuides.map((showLine, index) => <span key={index} className={clsx(treeNodeStyles.treeIndent, showLine && treeNodeStyles.hasLine)} />)}
+                {node.depth > 0 && <span className={clsx(treeNodeStyles.treeConnector, node.isLast && treeNodeStyles.isLast)} />}
+                {node.hasChildren ? (
+                    <button
+                        type="button"
+                        className={clsx(treeNodeStyles.treeNodeMarker, treeNodeStyles.isToggle, expanded && treeNodeStyles.isExpanded, colorClass)}
+                        style={{ "--tree-marker-color": !known ? color : undefined } as FluxStyle}
+                        aria-label={expanded ? "Collapse" : "Expand"}
+                        aria-expanded={expanded}
+                        tabIndex={-1}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onExpand();
+                        }}
+                    >
+                        <FluxIcon name="angle-right" size={14} />
+                    </button>
+                ) : (
+                    <span className={clsx(treeNodeStyles.treeNodeMarker, colorClass)} style={{ "--tree-marker-color": !known ? color : undefined } as FluxStyle} />
+                )}
+            </div>
             {node.icon && <FluxIcon className={treeNodeStyles.treeNodeIcon} name={node.icon} />}
             <span className={treeNodeStyles.treeNodeLabel}>{node.label}</span>
             {trailing}
@@ -74,7 +82,7 @@ function TreeNode({ expanded, levelColors, node, onExpand, trailing }: { expande
 export function FluxTreeView({ className, expandedDepth = 1, levelColors, onClick, onDoubleClick, options, trailing, ...props }: Omit<HTMLAttributes<HTMLDivElement>, "onClick" | "onDoubleClick"> & { expandedDepth?: number; levelColors?: Array<FluxColor | string>; onClick?: (option: FluxTreeViewOption) => void; onDoubleClick?: (option: FluxTreeViewOption) => void; options: FluxTreeViewOption[]; trailing?: (node: FluxTreeFlatNode) => ReactNode }) {
     const treeId = useId();
     const [expanded, setExpanded] = useState(() => seededExpansion(options, expandedDepth));
-    const [highlighted, setHighlighted] = useState(0);
+    const [highlighted, setHighlighted] = useState(-1);
     const visible = flattenTree(options, expanded);
     const toggle = (id: string | number) =>
         setExpanded((current) => {
@@ -82,24 +90,49 @@ export function FluxTreeView({ className, expandedDepth = 1, levelColors, onClic
             next.has(id) ? next.delete(id) : next.add(id);
             return next;
         });
+    const toOption = (node: FluxTreeFlatNode): FluxTreeViewOption => {
+        const { ancestorIds: _ancestorIds, depth: _depth, hasChildren: _hasChildren, isLast: _isLast, lineGuides: _lineGuides, ...option } = node;
+        return option;
+    };
     const select = (index: number) => {
         const node = visible[index];
         if (!node || node.disabled) return;
         setHighlighted(index);
-        onClick?.(node);
+        onClick?.(toOption(node));
     };
     const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
         let next = highlighted;
-        if (event.key === "ArrowDown") next = Math.min(visible.length - 1, highlighted + 1);
-        else if (event.key === "ArrowUp") next = Math.max(0, highlighted - 1);
+        if (!visible.length) return;
+        if (event.key === "ArrowDown") next = highlighted < 0 ? 0 : Math.min(visible.length - 1, highlighted + 1);
+        else if (event.key === "ArrowUp") next = highlighted < 0 ? visible.length - 1 : Math.max(0, highlighted - 1);
         else if (event.key === "Home") next = 0;
         else if (event.key === "End") next = visible.length - 1;
-        else if (event.key === "ArrowRight" && visible[highlighted]?.hasChildren && !expanded.has(visible[highlighted].id)) toggle(visible[highlighted].id);
-        else if (event.key === "ArrowLeft" && expanded.has(visible[highlighted]?.id)) toggle(visible[highlighted].id);
+        else if (event.key === "ArrowRight") {
+            const node = visible[highlighted];
+            if (node?.hasChildren) {
+                if (!expanded.has(node.id)) toggle(node.id);
+                else if (visible[highlighted + 1]?.depth > node.depth) next = highlighted + 1;
+            }
+        }
+        else if (event.key === "ArrowLeft") {
+            const node = visible[highlighted];
+            if (node?.hasChildren && expanded.has(node.id)) toggle(node.id);
+            else if (node?.depth > 0) {
+                for (let index = highlighted - 1; index >= 0; index--) {
+                    if (visible[index].depth === node.depth - 1) { next = index; break; }
+                }
+            }
+        }
         else if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             select(highlighted);
             return;
+        } else if (event.key.length === 1) {
+            const key = event.key.toLowerCase();
+            const after = visible.findIndex((node, index) => index > highlighted && node.label.toLowerCase().startsWith(key));
+            const wrapped = visible.findIndex(node => node.label.toLowerCase().startsWith(key));
+            next = after >= 0 ? after : wrapped;
+            if (next < 0) return;
         } else return;
         event.preventDefault();
         setHighlighted(next);
@@ -117,11 +150,12 @@ export function FluxTreeView({ className, expandedDepth = 1, levelColors, onClic
                     aria-selected={index === highlighted}
                     aria-expanded={node.hasChildren ? expanded.has(node.id) : undefined}
                     aria-disabled={node.disabled || undefined}
+                    aria-owns={node.hasChildren && expanded.has(node.id) ? node.children?.map(child => `${treeId}-node-${child.id}`).join(" ") : undefined}
                     onClick={() => select(index)}
                     onDoubleClick={() => {
                         if (node.disabled) return;
                         if (node.hasChildren) toggle(node.id);
-                        onDoubleClick?.(node);
+                        onDoubleClick?.(toOption(node));
                     }}
                 >
                     <TreeNode node={node} expanded={expanded.has(node.id)} levelColors={levelColors} onExpand={() => toggle(node.id)} trailing={trailing?.(node)} />

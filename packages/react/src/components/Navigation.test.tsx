@@ -22,6 +22,15 @@ describe('keyboard navigation', () => {
         expect(onValueChange).toHaveBeenCalledWith('grid');
     });
 
+    it('positions the active highlight behind the selected item', () => {
+        const {rerender, container} = render(<FluxSegmentedControl value="list" onValueChange={() => undefined}><FluxSegmentedControlItem value="list" label="List" /><FluxSegmentedControlItem value="grid" label="Grid" /></FluxSegmentedControl>);
+        const list = screen.getByRole('radio', {name: 'List'});
+        Object.defineProperties(list, {offsetLeft: {configurable: true, value: 7}, offsetWidth: {configurable: true, value: 64}});
+        rerender(<FluxSegmentedControl value="grid" onValueChange={() => undefined}><FluxSegmentedControlItem value="list" label="List" /><FluxSegmentedControlItem value="grid" label="Grid" /></FluxSegmentedControl>);
+        rerender(<FluxSegmentedControl value="list" onValueChange={() => undefined}><FluxSegmentedControlItem value="list" label="List" /><FluxSegmentedControlItem value="grid" label="Grid" /></FluxSegmentedControl>);
+        expect(container.querySelector('[style="left: 7px; width: 64px;"]')).toBeInTheDocument();
+    });
+
     it('wraps tab focus', () => {
         const second = vi.fn();
         render(<FluxTabBar><FluxTabBarItem label="First" isActive /><FluxTabBarItem label="Second" onClick={second} /></FluxTabBar>);

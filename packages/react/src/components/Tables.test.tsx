@@ -11,6 +11,34 @@ import {
 } from "./Tables";
 
 describe("table primitives", () => {
+    it("infers Vue-compatible grid tracks from declarative headers", () => {
+        const { container } = render(
+            <FluxTable header={<FluxTableRow><FluxTableHeader>Name</FluxTableHeader><FluxTableHeader isShrinking>Count</FluxTableHeader></FluxTableRow>}>
+                <FluxTableRow><FluxTableCell>Alpha</FluxTableCell><FluxTableCell>2</FluxTableCell></FluxTableRow>
+            </FluxTable>,
+        );
+        expect(container.firstElementChild).toHaveStyle({ "--flux-table-columns": "1fr auto" });
+    });
+
+    it("inherits column formatting from declarative headers", () => {
+        render(
+            <FluxTable header={<FluxTableRow><FluxTableHeader align="end" isNumeric noWrap>Count</FluxTableHeader></FluxTableRow>}>
+                <FluxTableRow><FluxTableCell>2,400</FluxTableCell></FluxTableRow>
+            </FluxTable>,
+        );
+        const header = screen.getByRole("columnheader", { name: "Count" });
+        const cell = screen.getByRole("cell", { name: "2,400" });
+        expect(header.className).not.toContain("isNumeric");
+        expect(cell).toHaveStyle({ justifyContent: "end", textAlign: "end" });
+        expect(cell.className).toMatch(/isNumeric/);
+        expect(cell.className).toMatch(/isNoWrap/);
+    });
+
+    it("infers fallback tracks from body cells when no header is present", () => {
+        const { container } = render(<FluxTable><FluxTableRow><FluxTableCell colspan={2}>Alpha</FluxTableCell><FluxTableCell>2</FluxTableCell></FluxTableRow></FluxTable>);
+        expect(container.firstElementChild).toHaveStyle({ "--flux-table-columns": "repeat(3, auto)" });
+    });
+
     it("sorts, resizes, and activates rows from the keyboard", () => {
         const onSort = vi.fn();
         const onResize = vi.fn();

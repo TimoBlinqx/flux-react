@@ -16,6 +16,20 @@ const tree = [
 ];
 
 describe("tree controls", () => {
+    it("matches Vue's default collapsed and unhighlighted tree presentation", () => {
+        render(<FluxTreeView options={tree} />);
+        expect(screen.queryByText("Flux")).not.toBeInTheDocument();
+        expect(screen.getByRole("tree")).not.toHaveAttribute("aria-activedescendant");
+        expect(screen.getByRole("treeitem", { name: /Projects/ })).toHaveAttribute("aria-selected", "false");
+    });
+
+    it("renders the connector structure used by the shared tree styles", () => {
+        render(<FluxTreeView options={tree} expandedDepth={2} />);
+        const child = screen.getByText("Flux").closest('[role="treeitem"]')!;
+        expect(child.firstElementChild).toHaveStyle({ "--tree-marker-column": "1" });
+        expect(child.firstElementChild?.children).toHaveLength(2);
+    });
+
     it("expands and selects nodes with pointer and keyboard controls", () => {
         const onClick = vi.fn();
         render(<FluxTreeView options={tree} expandedDepth={0} onClick={onClick} />);
@@ -23,8 +37,9 @@ describe("tree controls", () => {
         fireEvent.click(screen.getByRole("button", { name: "Expand" }));
         expect(screen.getByText("Flux")).toBeInTheDocument();
         fireEvent.keyDown(screen.getByRole("tree"), { key: "ArrowDown" });
+        fireEvent.keyDown(screen.getByRole("tree"), { key: "ArrowDown" });
         fireEvent.keyDown(screen.getByRole("tree"), { key: "Enter" });
-        expect(onClick).toHaveBeenCalledWith(expect.objectContaining({ id: "flux", depth: 1 }));
+        expect(onClick).toHaveBeenCalledWith({ id: "flux", label: "Flux" });
     });
 
     it("searches and changes hierarchical selections", () => {
